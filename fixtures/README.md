@@ -34,3 +34,14 @@ To force the OpenCL backend selector, pass `C` for CPU or `G` for GPU:
 ```
 
 The checker only asserts that the expected rows are present. It does not fail if the current build emits additional rows, which is useful while v3 output semantics are still being stabilized.
+
+## GitHub Actions GPU lane
+
+The GPU matrix lane in `.github/workflows/fixtures.yml` expects the repository or organization
+variable `GH_GPU_RUNNER_JSON` to contain the GitHub larger-runner target as JSON, for example:
+
+```json
+{"group":"gpu-runners","labels":"ubuntu-24.04-gpu"}
+```
+
+Use the runner label copied from the repository's **Actions > Runners** page.

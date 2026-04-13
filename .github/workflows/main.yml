@@ -41,10 +41,10 @@ jobs:
           - os: ubuntu-latest
             name: linux 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Download OpenCL Library
         if: matrix.os == 'windows-latest'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: intel/clGPU
           path: 'clGPU'
@@ -68,7 +68,7 @@ jobs:
              && nmake
         working-directory: build
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v4
         with:
           name: Cas-OFFinder Binary (${{ matrix.os }}, ${{ matrix.configuration }})
           path: build/cas-offinder${{ matrix.extension }}

@@ -1,4 +1,4 @@
-fixtures/pam-both
+fixtures/pam-both/genome.fa
 TTTVNNNNNNNNNNNNNNNNNNNNNGG 2 2
 TTTAACCAATAGCCTTGACAAGGCAGG 0 exact_both
 TTTCCGATGACCTTAGGACCTTGCAGG 0 dna_both
