@@ -1,0 +1,62 @@
+name: fixtures
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fixtures-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Fixtures (${{ matrix.backend }})
+    runs-on: ${{ fromJSON(matrix.runs_on) }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: cpu
+            device: C
+            runs_on: '["ubuntu-latest"]'
+            install_opencl: true
+          - backend: gpu
+            device: G
+            runs_on: '["self-hosted","linux","x64","gpu","opencl"]'
+            install_opencl: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        if: matrix.install_opencl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake opencl-headers ocl-icd-opencl-dev
+
+      - name: Restore build cache
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-${{ matrix.backend }}-build-${{ hashFiles('CMakeLists.txt', 'config.h.in', '*.cpp', '*.h', 'cas-offinder.cl', 'fixtures/**', '.github/workflows/fixtures.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.backend }}-build-
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run fixture suite
+        run: ./fixtures/check-fixtures.sh ./build/cas-offinder ${{ matrix.device }}

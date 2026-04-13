@@ -1,0 +1,11 @@
+# Id BulgeType Direction BulgeSize
+exact_5p X + 0
+exact_5p X - 0
+dna_5p DNA + 1
+dna_5p DNA - 2
+rna_5p RNA + 1
+rna_5p RNA - 2
+both_5p DNA + 1
+both_5p RNA + 1
+both_5p DNA - 2
+both_5p RNA - 2

@@ -1,0 +1,11 @@
+# Id BulgeType Direction BulgeSize
+exact_3p X + 0
+exact_3p X - 0
+dna_3p DNA + 1
+dna_3p DNA - 2
+rna_3p RNA + 1
+rna_3p RNA - 2
+both_3p DNA + 1
+both_3p RNA + 1
+both_3p DNA - 2
+both_3p RNA - 2
