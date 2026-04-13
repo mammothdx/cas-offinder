@@ -15,7 +15,7 @@ This folder contains synthetic Cas-OFFinder fixtures that exercise:
 Each orientation fixture contains:
 
 - `genome.fa`: a synthetic single-chromosome FASTA
-- `input.txt`: a Cas-OFFinder input file that points at the fixture directory
+- `input.txt`: a Cas-OFFinder input file that points directly to the fixture's `genome.fa` file path
 - `expected.txt`: required `(Id, BulgeType, Direction, BulgeSize, Index, SeqRNA, SeqDNA)` rows
 
 ## Running

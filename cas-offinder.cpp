@@ -427,9 +427,9 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 									continue;
 								id = entry.first.first;
 								seq_dna = string(strbuf);
-								guide_reversed_pam = bi.second < 0;
+								guide_reversed_pam = bulge_is_reversed_pam(bi.second);
 								trim_right = guide_reversed_pam ^ (m_directions[dev_index][i] == '-');
-								bulge_index = guide_reversed_pam ? (unsigned int)(-bi.second) : (unsigned int)bi.second;
+								bulge_index = decode_bulge_index(bi.second);
 								if (isnumeric(bi.first)) {
 									bulge_size = (unsigned int)stoi(bi.first);
 									offset = output_alignment_start_offset(m_dnabulgesize - bulge_size, trim_right, m_directions[dev_index][i]);
@@ -659,9 +659,9 @@ void Cas_OFFinder::parseInput(istream& input) {
 							compare = string(preNcnt, 'N') + sline[0].substr(0, j) + string(i, 'N') + sline[0].substr(j);
 						}
 						if (compare == tmp)
-							bi = make_pair("0", (is_reversed_pam?-j:j));
+							bi = make_pair("0", encode_bulge_index(j, is_reversed_pam));
 						else
-							bi = make_pair(to_string(i), (is_reversed_pam?-j:j));
+							bi = make_pair(to_string(i), encode_bulge_index(j, is_reversed_pam));
 						add_compare(compare, ci, bi);
 					}
 				}
@@ -669,7 +669,7 @@ void Cas_OFFinder::parseInput(istream& input) {
 			for (i = 1; i <= m_rnabulgesize; i++) {
 				preNcnt = m_dnabulgesize + i;
 				for (j = sline[0].find_first_not_of('N'); j < sline[0].find_last_not_of('N') + 1 - i; j++) {
-					bi = make_pair(sline[0].substr(j, i), (is_reversed_pam?-j:j));
+					bi = make_pair(sline[0].substr(j, i), encode_bulge_index(j, is_reversed_pam));
 					if (is_reversed_pam) {
 						compare = sline[0].substr(0, j) + sline[0].substr(j + i) + string(preNcnt, 'N');
 					} else {

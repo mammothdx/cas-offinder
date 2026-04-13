@@ -5,7 +5,7 @@ binary="${1:-./cas-offinder}"
 device="${2:-C}"
 root="$(cd "$(dirname "$0")" && pwd)"
 repo_root="$(cd "${root}/.." && pwd)"
-tmpdir="$(mktemp -d)"
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/cas-offinder.XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 run_case() {
