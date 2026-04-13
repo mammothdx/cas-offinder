@@ -29,6 +29,14 @@ static inline string trim_search_padding(const string& seq, size_t trim, bool tr
 	return trim_right ? trim_right_bases(seq, trim) : trim_left_bases(seq, trim);
 }
 
+// Report the forward-strand genome index of the leftmost base in the printed
+// DNA alignment after trimming search padding.
+static inline int output_alignment_start_offset(size_t trim, bool trim_right, char direction) {
+	if (direction == '-')
+		return (int)(trim_right ? trim : 0);
+	return (int)(trim_right ? 0 : trim);
+}
+
 vector<string> split(string const &input) {
 	istringstream sbuffer(input);
 	vector<string> ret((istream_iterator<string>(sbuffer)), istream_iterator<string>());
@@ -424,14 +432,14 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 								bulge_index = guide_reversed_pam ? (unsigned int)(-bi.second) : (unsigned int)bi.second;
 								if (isnumeric(bi.first)) {
 									bulge_size = (unsigned int)stoi(bi.first);
-									offset = (int)(trim_right ? 0 : (m_dnabulgesize - bulge_size));
+									offset = output_alignment_start_offset(m_dnabulgesize - bulge_size, trim_right, m_directions[dev_index][i]);
 									seq_rna = trim_search_padding(compare, m_dnabulgesize - bulge_size, guide_reversed_pam);
 									seq_rna = seq_rna.substr(0, bulge_index) + string(bulge_size, '-') + seq_rna.substr(bulge_index + bulge_size);
 									seq_dna = trim_search_padding(seq_dna, m_dnabulgesize - bulge_size, trim_right);
 									bulge_type = (bulge_size == 0) ? "X" : "DNA";
 								} else {
 									bulge_size = (unsigned int)bi.first.size();
-									offset = (int)(trim_right ? 0 : (m_dnabulgesize + bulge_size));
+									offset = output_alignment_start_offset(m_dnabulgesize + bulge_size, trim_right, m_directions[dev_index][i]);
 									seq_rna = trim_search_padding(compare, m_dnabulgesize + bulge_size, guide_reversed_pam);
 									seq_rna = seq_rna.substr(0, bulge_index) + bi.first + seq_rna.substr(bulge_index);
 									seq_dna = trim_search_padding(seq_dna, m_dnabulgesize + bulge_size, trim_right);

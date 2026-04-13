@@ -16,7 +16,7 @@ Each orientation fixture contains:
 
 - `genome.fa`: a synthetic single-chromosome FASTA
 - `input.txt`: a Cas-OFFinder input file that points at the fixture directory
-- `expected.txt`: required `(Id, BulgeType, Direction, BulgeSize, SeqRNA, SeqDNA)` rows
+- `expected.txt`: required `(Id, BulgeType, Direction, BulgeSize, Index, SeqRNA, SeqDNA)` rows
 
 ## Running
 
@@ -33,7 +33,7 @@ To force the OpenCL backend selector, pass `C` for CPU or `G` for GPU:
 ./fixtures/check-fixtures.sh ./cas-offinder G
 ```
 
-The checker asserts that the expected rows are present with the exact emitted `SeqRNA` and `SeqDNA` alignments. It does not fail if the current build emits additional rows, which is useful while v3 output semantics are still being stabilized.
+The checker asserts that the expected rows are present with the exact emitted `Index`, `SeqRNA`, and `SeqDNA` alignments. It does not fail if the current build emits additional rows, which is useful while v3 output semantics are still being stabilized.
 
 ## GitHub Actions GPU lane
 

@@ -17,12 +17,12 @@ run_case() {
     cd "$repo_root"
     "$binary" "$case_dir/input.txt" "$device" "$out_file" >/dev/null
   )
-  awk -F'\t' 'BEGIN{OFS=" "} !/^#/ {print $1, $2, $7, $9, $3, $4}' "$out_file" | sort -u >"$actual_file"
+  awk -F'\t' 'BEGIN{OFS=" "} !/^#/ {print $1, $2, $7, $9, $6, $3, $4}' "$out_file" | sort -u >"$actual_file"
 
-  while read -r id bulge_type direction bulge_size seq_rna seq_dna; do
+  while read -r id bulge_type direction bulge_size index seq_rna seq_dna; do
     [[ -z "${id}" || "${id}" == \#* ]] && continue
-    if ! grep -Fqx "${id} ${bulge_type} ${direction} ${bulge_size} ${seq_rna} ${seq_dna}" "$actual_file"; then
-      echo "Fixture failure in ${case_dir}: missing ${id} ${bulge_type} ${direction} ${bulge_size} ${seq_rna} ${seq_dna}" >&2
+    if ! grep -Fqx "${id} ${bulge_type} ${direction} ${bulge_size} ${index} ${seq_rna} ${seq_dna}" "$actual_file"; then
+      echo "Fixture failure in ${case_dir}: missing ${id} ${bulge_type} ${direction} ${bulge_size} ${index} ${seq_rna} ${seq_dna}" >&2
       echo "Actual rows:" >&2
       cat "$actual_file" >&2
       return 1
