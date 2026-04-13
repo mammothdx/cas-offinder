@@ -6,6 +6,7 @@ on:
     branches:
       - develop
       - main
+      - fix-reverse-strand-output-reconstruction
   workflow_dispatch:
 
 permissions:
@@ -16,46 +17,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Fixtures (${{ matrix.backend }})
-    if: ${{ matrix.backend != 'gpu' || vars.GH_GPU_RUNNER_LABEL != '' }}
-    runs-on: ${{ matrix.backend == 'cpu' && 'ubuntu-latest' || vars.GH_GPU_RUNNER_LABEL }}
+  cpu:
+    name: Fixtures (cpu)
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - backend: cpu
-            device: C
-            install_opencl: true
-          - backend: gpu
-            device: G
-            install_opencl: false
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install build dependencies
-        if: matrix.install_opencl
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake opencl-headers ocl-icd-opencl-dev pocl-opencl-icd
+          sudo apt-get install -y cmake opencl-headers ocl-icd-opencl-dev pocl-opencl-icd clinfo
 
       - name: Show OpenCL devices
-        if: matrix.install_opencl
-        run: |
-          sudo apt-get install -y clinfo
-          clinfo
+        run: clinfo
 
       - name: Restore build cache
         id: cache-build
         uses: actions/cache@v4
         with:
           path: build
-          key: ${{ runner.os }}-${{ matrix.backend }}-build-${{ hashFiles('CMakeLists.txt', 'config.h.in', '*.cpp', '*.h', 'cas-offinder.cl', 'fixtures/**', '.github/workflows/fixtures.yml') }}
+          key: ${{ runner.os }}-cpu-build-${{ hashFiles('CMakeLists.txt', 'config.h.in', '*.cpp', '*.h', 'cas-offinder.cl', 'fixtures/**', '.github/workflows/fixtures.yml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.backend }}-build-
+            ${{ runner.os }}-cpu-build-
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -64,4 +49,31 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Run fixture suite
-        run: ./fixtures/check-fixtures.sh ./build/cas-offinder ${{ matrix.device }}
+        run: ./fixtures/check-fixtures.sh ./build/cas-offinder C
+
+  gpu:
+    name: Fixtures (gpu)
+    if: ${{ vars.GH_GPU_RUNNER_LABEL != '' }}
+    runs-on: ${{ vars.GH_GPU_RUNNER_LABEL }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore build cache
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-gpu-build-${{ hashFiles('CMakeLists.txt', 'config.h.in', '*.cpp', '*.h', 'cas-offinder.cl', 'fixtures/**', '.github/workflows/fixtures.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-gpu-build-
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run fixture suite
+        run: ./fixtures/check-fixtures.sh ./build/cas-offinder G
