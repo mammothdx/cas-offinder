@@ -15,7 +15,8 @@ static cl_uint platform_cnt;
 
 typedef pair<string, cl_ushort> compareinfo;
 typedef pair<string, int> bulgeinfo;
-typedef map<string, pair<compareinfo, vector<bulgeinfo> > > m_compare_t;
+typedef pair<compareinfo, bulgeinfo> compareentry;
+typedef map<string, vector<compareentry> > m_compare_t;
 
 static inline bool isnumeric(string s) {
 	return s.find_first_not_of("0123456789") == std::string::npos;
