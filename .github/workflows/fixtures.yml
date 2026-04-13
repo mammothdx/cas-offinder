@@ -6,7 +6,8 @@ on:
     branches:
       - develop
       - main
-      - fix-reverse-strand-output-reconstruction
+    tags:
+      - '*'
   workflow_dispatch:
 
 permissions:
