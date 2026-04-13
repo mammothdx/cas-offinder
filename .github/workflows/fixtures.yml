@@ -18,8 +18,8 @@ concurrency:
 jobs:
   test:
     name: Fixtures (${{ matrix.backend }})
-    if: ${{ matrix.backend != 'gpu' || vars.GH_GPU_RUNNER_JSON != '' }}
-    runs-on: ${{ fromJSON(matrix.runs_on) }}
+    if: ${{ matrix.backend != 'gpu' || vars.GH_GPU_RUNNER_LABEL != '' }}
+    runs-on: ${{ matrix.backend == 'cpu' && 'ubuntu-latest' || vars.GH_GPU_RUNNER_LABEL }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -27,11 +27,9 @@ jobs:
         include:
           - backend: cpu
             device: C
-            runs_on: '"ubuntu-latest"'
             install_opencl: true
           - backend: gpu
             device: G
-            runs_on: ${{ vars.GH_GPU_RUNNER_JSON }}
             install_opencl: false
 
     steps:
