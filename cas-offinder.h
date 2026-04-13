@@ -15,10 +15,23 @@ static cl_uint platform_cnt;
 
 typedef pair<string, cl_ushort> compareinfo;
 typedef pair<string, int> bulgeinfo;
-typedef map<string, pair<compareinfo, vector<bulgeinfo> > > m_compare_t;
+typedef pair<compareinfo, bulgeinfo> compareentry;
+typedef map<string, vector<compareentry> > m_compare_t;
 
 static inline bool isnumeric(string s) {
 	return s.find_first_not_of("0123456789") == std::string::npos;
+}
+
+static inline int encode_bulge_index(unsigned int bulge_index, bool reversed_pam) {
+	return reversed_pam ? -((int)bulge_index + 1) : (int)bulge_index;
+}
+
+static inline bool bulge_is_reversed_pam(int encoded_index) {
+	return encoded_index < 0;
+}
+
+static inline unsigned int decode_bulge_index(int encoded_index) {
+	return encoded_index < 0 ? (unsigned int)(-encoded_index - 1) : (unsigned int)encoded_index;
 }
 
 class Cas_OFFinder {
