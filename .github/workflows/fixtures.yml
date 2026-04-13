@@ -41,7 +41,13 @@ jobs:
         if: matrix.install_opencl
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake opencl-headers ocl-icd-opencl-dev
+          sudo apt-get install -y cmake opencl-headers ocl-icd-opencl-dev pocl-opencl-icd
+
+      - name: Show OpenCL devices
+        if: matrix.install_opencl
+        run: |
+          sudo apt-get install -y clinfo
+          clinfo
 
       - name: Restore build cache
         id: cache-build
