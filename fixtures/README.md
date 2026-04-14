@@ -5,6 +5,7 @@ This folder contains synthetic Cas-OFFinder fixtures that exercise:
 - 3' PAM only
 - 5' PAM only
 - PAM on both sides
+- N-only padding on both sides
 - forward and reverse strand hits
 - DNA bulges up to size 2
 - RNA bulges up to size 2

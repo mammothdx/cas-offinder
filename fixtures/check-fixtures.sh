@@ -12,7 +12,6 @@ run_case() {
   local case_dir="$1"
   local out_file="$tmpdir/$(basename "$case_dir").out"
   local actual_file="$tmpdir/$(basename "$case_dir").actual"
-
   (
     cd "$repo_root"
     "$binary" "$case_dir/input.txt" "$device" "$out_file" >/dev/null
@@ -33,5 +32,6 @@ run_case() {
 run_case "$root/3prime"
 run_case "$root/5prime"
 run_case "$root/pam-both"
+run_case "$root/pam-both-nonly"
 
 echo "All fixture expectations were observed for device ${device}."
