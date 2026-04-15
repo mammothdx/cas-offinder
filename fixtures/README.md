@@ -18,8 +18,11 @@ Each orientation fixture contains:
 - `genome.fa`: a synthetic single-chromosome FASTA
 - `input.txt`: a Cas-OFFinder input file that points directly to the fixture's `genome.fa` file path
 - `expected.txt`: required `(Id, BulgeType, Direction, BulgeSize, Index, SeqRNA, SeqDNA)` rows
+- `forbidden.txt`: optional rows that must not appear in the emitted output
 
 Only the first sequence row in `input.txt` carries the PAM. The guide rows below it mask PAM positions with `N`, which matches how we want the fixtures to exercise the search logic rather than baking PAM bases into every guide.
+
+Each fixture `genome.fa` must contain exactly one FASTA target. The validator concatenates all sequence lines within that single target and does not treat multiple FASTA records as separate chromosomes.
 
 ## Running
 
