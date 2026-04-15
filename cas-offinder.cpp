@@ -428,7 +428,7 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 								id = entry.first.first;
 								seq_dna = string(strbuf);
 								guide_reversed_pam = bulge_is_reversed_pam(bi.second);
-								trim_right = guide_reversed_pam ^ (m_directions[dev_index][i] == '-');
+								trim_right = guide_reversed_pam;
 								bulge_index = decode_bulge_index(bi.second);
 								if (isnumeric(bi.first)) {
 									bulge_size = (unsigned int)stoi(bi.first);
@@ -616,9 +616,20 @@ void Cas_OFFinder::parseInput(istream& input) {
 		}
 		if (sline[0][0] != 'N') { // As of today (2021.07.29), there is no reversed PAM starts with 'N'
 			is_reversed_pam = true;
-			m_pattern = sline[0] + string(m_dnabulgesize, 'N');
+			string pam_for_finder = sline[0];
+			// Relax the rightmost m_rnabulgesize characters to N in the finder
+			// pattern.  RNA-bulge compares pad the right end with extra N's,
+			// which can push the 3' PAM out of the alignment region and into the
+			// padding.  The finder must not require those PAM bases, or it will
+			// miss valid reverse-strand RNA-bulge matches.
+			for (size_t ri = 0; ri < m_rnabulgesize && ri < pam_for_finder.size(); ri++)
+				pam_for_finder[pam_for_finder.size() - 1 - ri] = 'N';
+			m_pattern = pam_for_finder + string(m_dnabulgesize, 'N');
 		} else {
-			m_pattern = string(m_dnabulgesize, 'N') + sline[0];
+			string pam_for_finder = sline[0];
+			for (size_t ri = 0; ri < m_rnabulgesize && ri < pam_for_finder.size(); ri++)
+				pam_for_finder[ri] = 'N';
+			m_pattern = string(m_dnabulgesize, 'N') + pam_for_finder;
 		}
 		transform(m_pattern.begin(), m_pattern.end(), m_pattern.begin(), ::toupper);
 
