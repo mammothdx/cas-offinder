@@ -27,6 +27,7 @@ run_case() {
       return 1
     fi
   done <"$case_dir/expected.txt"
+
 }
 
 run_case "$root/3prime"

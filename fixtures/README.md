@@ -21,6 +21,8 @@ Each orientation fixture contains:
 
 Only the first sequence row in `input.txt` carries the PAM. The guide rows below it mask PAM positions with `N`, which matches how we want the fixtures to exercise the search logic rather than baking PAM bases into every guide.
 
+Each fixture `genome.fa` must contain exactly one FASTA target. The validator concatenates all sequence lines within that single target and does not treat multiple FASTA records as separate chromosomes.
+
 ## Running
 
 Build `cas-offinder`, then run:
