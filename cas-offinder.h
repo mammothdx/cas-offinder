@@ -46,8 +46,11 @@ private:
 	unsigned long long m_chrdatasize;
 	m_compare_t m_compares;
 	string m_pattern;
+	string m_input_pattern;
 	unsigned int m_dnabulgesize;
 	unsigned int m_rnabulgesize;
+	bool m_has_left_pam;
+	bool m_has_right_pam;
 
 	cl_uint m_threshold;
 	cl_uint m_patternlen;
@@ -71,7 +74,6 @@ private:
 	vector<cl_mem> m_directionbufs;
 
 	vector <cl_uint> m_locicnts;
-	vector <cl_uint *> m_locis;
 	vector <cl_ushort *> m_mmcounts;
 	vector <cl_char *> m_flags;
 	vector <cl_char *> m_directions;
@@ -100,6 +102,8 @@ public:
 	map<string, unsigned int> m_summarytable;
 	vector<string> m_chrnames;
 	vector<unsigned long long> m_chrpos;
+	map<string, string> m_guides;
+	map<string, cl_ushort> m_thresholds;
 
 	Cas_OFFinder(cl_device_type devtype, string devarg);
 	~Cas_OFFinder();

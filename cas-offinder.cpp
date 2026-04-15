@@ -29,8 +29,32 @@ static inline string trim_search_padding(const string& seq, size_t trim, bool tr
 	return trim_right ? trim_right_bases(seq, trim) : trim_left_bases(seq, trim);
 }
 
-// Report the forward-strand genome index of the leftmost base in the printed
-// DNA alignment after trimming search padding.
+static inline char complement_base(char base) {
+	switch (base) {
+		case 'A': return 'T';
+		case 'T': return 'A';
+		case 'G': return 'C';
+		case 'C': return 'G';
+		case 'R': return 'Y';
+		case 'Y': return 'R';
+		case 'M': return 'K';
+		case 'K': return 'M';
+		case 'H': return 'D';
+		case 'D': return 'H';
+		case 'B': return 'V';
+		case 'V': return 'B';
+		default: return base;
+	}
+}
+
+static inline string reverse_complement_string(const string& seq) {
+	string rc(seq.rbegin(), seq.rend());
+	transform(rc.begin(), rc.end(), rc.begin(), complement_base);
+	return rc;
+}
+
+// Report the forward-strand genome index of the first base in the emitted DNA
+// slice after trimming hidden search padding in guide orientation.
 static inline int output_alignment_start_offset(size_t trim, bool trim_right, char direction) {
 	if (direction == '-')
 		return (int)(trim_right ? trim : 0);
@@ -50,6 +74,28 @@ vector<string> split(string const &input, char delim) {
 	while (getline(sbuffer, item, delim))
 		ret.push_back(item);
 	return ret;
+}
+
+static inline bool iupac_contains_base(char pattern, char base) {
+	base = (char)toupper(base);
+	switch ((char)toupper(pattern)) {
+		case 'A': return base == 'A';
+		case 'C': return base == 'C';
+		case 'G': return base == 'G';
+		case 'T': return base == 'T';
+		case 'R': return base == 'A' || base == 'G';
+		case 'Y': return base == 'C' || base == 'T';
+		case 'K': return base == 'G' || base == 'T';
+		case 'M': return base == 'A' || base == 'C';
+		case 'W': return base == 'A' || base == 'T';
+		case 'S': return base == 'C' || base == 'G';
+		case 'H': return base == 'A' || base == 'C' || base == 'T';
+		case 'B': return base == 'C' || base == 'G' || base == 'T';
+		case 'V': return base == 'A' || base == 'C' || base == 'G';
+		case 'D': return base == 'A' || base == 'G' || base == 'T';
+		case 'N': return base == 'A' || base == 'C' || base == 'G' || base == 'T';
+		default: return false;
+	}
 }
 
 void Cas_OFFinder::set_complementary_sequence(cl_char* seq, size_t seqlen) {
@@ -360,6 +406,7 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 	string id;
 	string bulge_type;
 	int offset;
+	unsigned long long loci;
 	cl_uint zero = 0;
 
 	cl_char *cl_compare = new cl_char[m_patternlen * 2];
@@ -398,8 +445,6 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 			}
 		}
 
-		unsigned long long loci;
-
 		unsigned long long localanalyzedsize = 0;
 		unsigned int cnt = 0;
 		unsigned int idx;
@@ -428,20 +473,24 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 								id = entry.first.first;
 								seq_dna = string(strbuf);
 								guide_reversed_pam = bulge_is_reversed_pam(bi.second);
-								trim_right = guide_reversed_pam ^ (m_directions[dev_index][i] == '-');
+								// The reverse-complement step already puts seq_dna into guide
+								// orientation, so hidden search padding stays on the guide
+								// side regardless of strand.
+								trim_right = guide_reversed_pam;
 								bulge_index = decode_bulge_index(bi.second);
+								const string& guide = m_guides[id];
 								if (isnumeric(bi.first)) {
 									bulge_size = (unsigned int)stoi(bi.first);
 									offset = output_alignment_start_offset(m_dnabulgesize - bulge_size, trim_right, m_directions[dev_index][i]);
-									seq_rna = trim_search_padding(compare, m_dnabulgesize - bulge_size, guide_reversed_pam);
-									seq_rna = seq_rna.substr(0, bulge_index) + string(bulge_size, '-') + seq_rna.substr(bulge_index + bulge_size);
+									seq_rna = guide;
+									if (bulge_size > 0)
+										seq_rna = guide.substr(0, bulge_index) + string(bulge_size, '-') + guide.substr(bulge_index);
 									seq_dna = trim_search_padding(seq_dna, m_dnabulgesize - bulge_size, trim_right);
 									bulge_type = (bulge_size == 0) ? "X" : "DNA";
 								} else {
 									bulge_size = (unsigned int)bi.first.size();
 									offset = output_alignment_start_offset(m_dnabulgesize + bulge_size, trim_right, m_directions[dev_index][i]);
-									seq_rna = trim_search_padding(compare, m_dnabulgesize + bulge_size, guide_reversed_pam);
-									seq_rna = seq_rna.substr(0, bulge_index) + bi.first + seq_rna.substr(bulge_index);
+									seq_rna = guide;
 									seq_dna = trim_search_padding(seq_dna, m_dnabulgesize + bulge_size, trim_right);
 									seq_dna = seq_dna.substr(0, bulge_index) + string(bulge_size, '-') + seq_dna.substr(bulge_index);
 									bulge_type = "RNA";
@@ -456,10 +505,65 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 					}
 				}
 			}
+
 			localanalyzedsize += m_worksizes[dev_index];
 		}
 		fo->flush();
 	}
+
+	if (m_has_left_pam && m_has_right_pam && m_rnabulgesize > 0) {
+		unsigned long long chunk_offset = 0;
+		unsigned int idx;
+		for (dev_index = 0; dev_index < m_activedevnum; dev_index++) {
+			for (unsigned long long pos = 0; pos < m_worksizes[dev_index]; pos++) {
+				loci = m_lasttotalanalyzedsize + chunk_offset + pos;
+				strncpy(strbuf, (char *)(m_chrdata.c_str() + loci), m_patternlen);
+				set_complementary_sequence((cl_char *)strbuf, m_patternlen);
+				for (j = 0; ((j < m_chrpos.size()) && (loci >= m_chrpos[j])); j++) idx = j;
+				for (const auto& guide_entry : m_guides) {
+					const string& guide = guide_entry.second;
+					const cl_ushort guide_threshold = m_thresholds[guide_entry.first];
+					const unsigned int first_non_n = (unsigned int)guide.find_first_not_of('N');
+					const unsigned int last_non_n = (unsigned int)guide.find_last_not_of('N');
+					for (unsigned int bulge_size_fallback = 1; bulge_size_fallback <= m_rnabulgesize; bulge_size_fallback++) {
+						const string dna_trimmed = trim_search_padding(string(strbuf), m_dnabulgesize + bulge_size_fallback, true);
+						for (unsigned int bulge_index_fallback = first_non_n; bulge_index_fallback + bulge_size_fallback <= last_non_n + 1; bulge_index_fallback++) {
+							string seq_dna_fallback = dna_trimmed.substr(0, bulge_index_fallback) + string(bulge_size_fallback, '-') + dna_trimmed.substr(bulge_index_fallback);
+							cl_ushort mismatch_count_fallback = 0;
+							bool valid = true;
+							for (unsigned int col = 0; col < guide.size(); col++) {
+								const char dna_char = seq_dna_fallback[col];
+								if (dna_char == '-')
+									continue;
+								const char dna_base = (char)toupper(dna_char);
+								if (!iupac_contains_base(m_input_pattern[col], dna_base)) {
+									valid = false;
+									break;
+								}
+								if (!iupac_contains_base(guide[col], dna_base)) {
+									mismatch_count_fallback++;
+									seq_dna_fallback[col] = (char)tolower(dna_char);
+									if (mismatch_count_fallback > guide_threshold) {
+										valid = false;
+										break;
+									}
+								}
+							}
+							if (!valid)
+								continue;
+							const int offset_fallback = output_alignment_start_offset(m_dnabulgesize + bulge_size_fallback, true, '-');
+							(*fo) << guide_entry.first << "\tRNA\t" << guide << "\t" << seq_dna_fallback << "\t"
+							      << m_chrnames[idx] << "\t" << loci - m_chrpos[idx] + offset_fallback << "\t-\t"
+							      << mismatch_count_fallback << "\t" << bulge_size_fallback << endl;
+						}
+					}
+				}
+			}
+			chunk_offset += m_worksizes[dev_index];
+		}
+		fo->flush();
+	}
+
 	if (isfile)
 		((ofstream *)fo)->close();
 	delete [] strbuf;
@@ -595,6 +699,7 @@ void Cas_OFFinder::parseInput(istream& input) {
 	compareinfo ci;
 	bulgeinfo bi;
 	bool is_reversed_pam = false;
+	bool has_right_pam = false;
 	string compare, tmp;
 
 	try {
@@ -609,11 +714,17 @@ void Cas_OFFinder::parseInput(istream& input) {
 		
 		m_dnabulgesize = 0;
 		m_rnabulgesize = 0;
+		m_has_left_pam = false;
+		m_has_right_pam = false;
 
 		if (sline.size() == 3) {
 			m_dnabulgesize = atoi(sline[1].c_str());
 			m_rnabulgesize = atoi(sline[2].c_str());
 		}
+		m_input_pattern = sline[0];
+		has_right_pam = (sline[0][sline[0].size() - 1] != 'N');
+		m_has_left_pam = (sline[0][0] != 'N');
+		m_has_right_pam = has_right_pam;
 		if (sline[0][0] != 'N') { // As of today (2021.07.29), there is no reversed PAM starts with 'N'
 			is_reversed_pam = true;
 			m_pattern = sline[0] + string(m_dnabulgesize, 'N');
@@ -641,6 +752,8 @@ void Cas_OFFinder::parseInput(istream& input) {
 				id = sline[2];
 			else
 				id = to_string(linecnt);
+			m_guides[id] = sline[0];
+			m_thresholds[id] = (cl_ushort)threshold;
 			ci = make_pair(id, threshold);
 			if (m_dnabulgesize == 0) {
 				bi = make_pair("0", 0);
@@ -676,6 +789,12 @@ void Cas_OFFinder::parseInput(istream& input) {
 						compare = string(preNcnt, 'N') + sline[0].substr(0, j) + sline[0].substr(j + i);
 					}
 					add_compare(compare, ci, bi);
+					if (is_reversed_pam && has_right_pam) {
+						const string guide_rc = reverse_complement_string(sline[0]);
+						const unsigned int mirrored_index = (unsigned int)guide_rc.size() - j - i;
+						const string compare_rc = guide_rc.substr(0, mirrored_index) + guide_rc.substr(mirrored_index + i) + string(preNcnt, 'N');
+						add_compare(reverse_complement_string(compare_rc), ci, bi);
+					}
 				}
 			}
 			if (entrycnt == 0) {
