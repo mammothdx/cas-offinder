@@ -347,6 +347,46 @@ void Cas_OFFinder::writeHeaders(const char* outfilename) {
 	(*fo) << "#Id\tBulge Type\tcrRNA\tDNA\tChromosome\tLocation\tDirection\tMismatches\tBulge Size" << endl;
 }
 
+static bool iupac_mismatch(char pat, char dna) {
+	return (pat == 'R' && (dna == 'C' || dna == 'T')) ||
+	       (pat == 'Y' && (dna == 'A' || dna == 'G')) ||
+	       (pat == 'K' && (dna == 'A' || dna == 'C')) ||
+	       (pat == 'M' && (dna == 'G' || dna == 'T')) ||
+	       (pat == 'W' && (dna == 'C' || dna == 'G')) ||
+	       (pat == 'S' && (dna == 'A' || dna == 'T')) ||
+	       (pat == 'H' && (dna == 'G')) ||
+	       (pat == 'B' && (dna == 'A')) ||
+	       (pat == 'V' && (dna == 'T')) ||
+	       (pat == 'D' && (dna == 'C')) ||
+	       (pat == 'A' && (dna != 'A')) ||
+	       (pat == 'G' && (dna != 'G')) ||
+	       (pat == 'C' && (dna != 'C')) ||
+	       (pat == 'T' && (dna != 'T'));
+}
+
+// Verify the PAM is present at the alignment level.  Walks SeqRNA and
+// SeqDNA column-by-column, consuming one PAM-pattern position per non-gap
+// RNA character.  At every column where the PAM is non-N and DNA is
+// non-gap, the DNA base must match the PAM via IUPAC rules.
+static bool validate_pam_alignment(const string& pam, const string& seq_rna, const string& seq_dna) {
+	size_t top_idx = 0;
+	for (size_t col = 0; col < seq_rna.size() && col < seq_dna.size(); col++) {
+		if (seq_rna[col] == '-')
+			continue;
+		if (top_idx >= pam.size())
+			return false;
+		char pat = pam[top_idx++];
+		if (seq_dna[col] == '-')
+			continue;
+		if (pat == 'N')
+			continue;
+		char dna = toupper(seq_dna[col]);
+		if (iupac_mismatch(pat, dna))
+			return false;
+	}
+	return top_idx == pam.size();
+}
+
 void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 	unsigned int i, j, dev_index;
 	unsigned int bulge_size, bulge_index;
@@ -446,6 +486,8 @@ void Cas_OFFinder::compareAll(const char* outfilename, bool issummary) {
 									seq_dna = seq_dna.substr(0, bulge_index) + string(bulge_size, '-') + seq_dna.substr(bulge_index);
 									bulge_type = "RNA";
 								}
+								if (!validate_pam_alignment(m_pam_raw, seq_rna, seq_dna))
+									continue;
 								(*fo) << id << "\t" << bulge_type << "\t" << seq_rna << "\t" << seq_dna << "\t" << m_chrnames[idx] << "\t" << loci - m_chrpos[idx] + offset << "\t" << m_directions[dev_index][i] << "\t" << m_mmcounts[dev_index][i] << "\t" << bulge_size << endl;
 								if (issummary) {
 									snprintf(key, 10000, "%s,%s,%d,%d", id.c_str(), bulge_type.c_str(), bulge_size, m_mmcounts[dev_index][i]);
@@ -614,6 +656,8 @@ void Cas_OFFinder::parseInput(istream& input) {
 			m_dnabulgesize = atoi(sline[1].c_str());
 			m_rnabulgesize = atoi(sline[2].c_str());
 		}
+		m_pam_raw = sline[0];
+		transform(m_pam_raw.begin(), m_pam_raw.end(), m_pam_raw.begin(), ::toupper);
 		if (sline[0][0] != 'N') { // As of today (2021.07.29), there is no reversed PAM starts with 'N'
 			is_reversed_pam = true;
 			string pam_for_finder = sline[0];

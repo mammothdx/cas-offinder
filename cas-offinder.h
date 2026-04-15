@@ -46,6 +46,7 @@ private:
 	unsigned long long m_chrdatasize;
 	m_compare_t m_compares;
 	string m_pattern;
+	string m_pam_raw;  // original PAM line (sline[0]) for alignment-level PAM validation
 	unsigned int m_dnabulgesize;
 	unsigned int m_rnabulgesize;
 

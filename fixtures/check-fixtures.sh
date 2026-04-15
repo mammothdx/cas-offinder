@@ -36,3 +36,15 @@ run_case "$root/pam-both"
 run_case "$root/pam-both-nonly"
 
 echo "All fixture expectations were observed for device ${device}."
+
+# Phase 2: brute-force validation (exact set comparison)
+if command -v python3 >/dev/null 2>&1; then
+  bf_script="$root/bruteforce_check.py"
+  if [ -f "$bf_script" ]; then
+    for case_dir in "$root/3prime" "$root/5prime" "$root/pam-both" "$root/pam-both-nonly"; do
+      out_file="$tmpdir/$(basename "$case_dir").out"
+      python3 "$bf_script" "$case_dir" "$out_file" || exit 1
+    done
+    echo "Brute-force validation passed for device ${device}."
+  fi
+fi
