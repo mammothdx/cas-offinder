@@ -27,6 +27,18 @@ run_case() {
       return 1
     fi
   done <"$case_dir/expected.txt"
+
+  if [[ -f "$case_dir/forbidden.txt" ]]; then
+    while read -r id bulge_type direction bulge_size index seq_rna seq_dna; do
+      [[ -z "${id}" || "${id}" == \#* ]] && continue
+      if grep -Fqx "${id} ${bulge_type} ${direction} ${bulge_size} ${index} ${seq_rna} ${seq_dna}" "$actual_file"; then
+        echo "Fixture failure in ${case_dir}: forbidden ${id} ${bulge_type} ${direction} ${bulge_size} ${index} ${seq_rna} ${seq_dna}" >&2
+        echo "Actual rows:" >&2
+        cat "$actual_file" >&2
+        return 1
+      fi
+    done <"$case_dir/forbidden.txt"
+  fi
 }
 
 run_case "$root/3prime"
